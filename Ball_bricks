@@ -1,0 +1,553 @@
+#include <cctype>
+#include <climits>
+#include <cstring>
+#include <iomanip>
+#include <iostream>
+#include <string>
+using namespace std;
+class matrix
+/*matrix class deals with matrix creation and display.*/
+{
+   public:
+    string m[100][100], value;
+    int size;
+
+    void main_Matrix(int n) /*creates the matrix borders based on user input.*/
+    {
+        size = n;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == 0 || j == n - 1 || j == 0) {
+                    m[i][j] = 'W';
+                }
+
+                else if (i == n - 1 && j > 0 && j < n - 1 && j != (n / 2)) {
+                    m[i][j] = 'G';
+                }
+
+                else if (i == n - 1 && j == n / 2) {
+                    m[i][j] = 'o';
+                }
+
+                else {
+                    m[i][j] = ' ';
+                }
+            }
+        }
+    }
+
+    void put_Matrix(int r, int c, string v) /*insert users values into matrix.*/
+    {
+        m[r][c] = v;
+    }
+
+    void show_Matrix() /*display final matrix.*/
+    {
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                cout << " " << setfill(' ') << setw(2) << m[i][j] << "  ";
+            }
+            cout << "\n\n";
+        }
+    }
+};
+
+class game_Details : public matrix
+/*deals with game victory and ball base.*/
+{
+   public:
+    int ball_col, ball_left, b_Flag = 0, v_flag = 0;
+
+    void new_Base() /*determine and execute the position of ballbase and extension.*/
+    {
+        for (int i = 1; i < size - 1; i++) {
+            m[size - 1][i] = "G";
+        }
+
+        m[size - 1][ball_col] = "o";
+
+        if (ball_col > 1 && ball_col < size - 2) {
+            if (b_Flag % 2 != 0 && b_Flag != 0) {
+                m[size - 1][ball_col + 1] = "_";
+            }
+
+            else if (b_Flag % 2 == 0 && b_Flag != 0) {
+                m[size - 1][ball_col - 1] = "_";
+            }
+        }
+    }
+
+    void check_Victory() /*checks wether victory is attained.*/
+    {
+        v_flag = 0;
+        for (int i = 1; i < size - 1; i++) {
+            for (int j = 1; j < size - 1; j++) {
+                if (m[i][j] != " ") {
+                    v_flag = 1;
+                }
+            }
+        }
+    }
+};
+
+class game_Moves : public game_Details /*deals with movements and changes in matrix.*/
+{
+   public:
+    int num = 0;
+
+    void check_Brick(int i, int j) /* checks value of m[i][j] and then replace it with required value.*/
+    {
+        if (m[i][j] == "DS" || m[i][j] == "ds" || m[i][j] == "dS" || m[i][j] == "Ds") {
+            do_DS(i, j);
+        }
+
+        else if (m[i][j] == "DE" || m[i][j] == "de" || m[i][j] == "De" || m[i][j] == "dE") {
+            do_DE(i, j);
+        }
+
+        else if (m[i][j] == "B" || m[i][j] == "b") {
+            b_Flag = b_Flag + 1;
+            m[i][j] = " ";
+        } else {
+            int num = 1;
+            try {
+                num = stoi(m[i][j]); /*converts string to integer */
+            } catch (...) {
+            }
+
+            if (num > 1) {
+                num--;
+                m[i][j] = to_string(num);
+            }
+        }
+    }
+
+    void do_DE(int i, int j) /*deletes every values in the same row of m[i][j] (ability/power of DE).*/
+    {
+        for (int f = 1; f < size - 1; f++) {
+            if (m[i][f] == "DS" || m[i][f] == "ds" || m[i][j] == "dS" || m[i][j] == "Ds") {
+                do_DS(i, f);
+            }
+
+            else {
+                m[i][f] = " ";
+            }
+        }
+    }
+
+    void do_DS(int i, int j) /*deletes every values in the surrounding of m[i][j] (ability of DS).*/
+    {
+        m[i][j] = " ";
+
+        for (int k = 0; k < 3; k++) {
+            for (int l = 0; l < 3; l++) {
+                if (m[i + k - 1][j + l - 1] == "DE" || m[i + k - 1][j + l - 1] == "de" || m[i][j] == "De" || m[i][j] == "dE") {
+                    do_DE(i + k - 1, j + l - 1);
+                }
+
+                else if (m[i + k - 1][j + l - 1] == "DS" || m[i + k - 1][j + l - 1] == "ds" || m[i][j] == "dS" || m[i][j] == "Ds") {
+                    do_DS(i + k - 1, j + l - 1); /*if encountered with another DS within the surroundng of m[i][j] then the surrounding of new DS position isdeleted using recursion*/
+                }
+
+                else if (m[i + k - 1][j + l - 1] == "B" || m[i + k - 1][j + l - 1] == "b") {
+                    m[i + k - 1][j + l - 1] = " ";
+                    b_Flag = b_Flag + 1; /*b_flag is an indicater to use powers of B brick*/
+                }
+
+                else if (m[i + k - 1][j + l - 1] == "W") {
+                    /*no action required*/
+                }
+
+                else {
+                    m[i + k - 1][j + l - 1] = " ";
+                }
+            }
+        }
+    }
+
+    void goStraight(int i, int j) /*goes strigth up from m[i][j].*/
+    {
+        int r = i - 1;
+
+        if (m[r][j] == " ") {
+            goStraight(r, j); /*creats a loop using recursion*/
+        }
+
+        else if (m[r][j] == "1") {
+            m[r][j] = " ";
+        }
+
+        else if (m[r][j] == "W") {
+            /*no action required*/
+        }
+
+        else {
+            check_Brick(r, j); /*any other input is analyzed in this function*/
+        }
+
+        new_Base(); /*new base of the matrix is created.*/
+    }
+
+    void goLD(int i, int j) /*goes along left diognal.*/
+    {
+        if (m[i - 1][j - 1] == " ") {
+            goLD(i - 1, j - 1); /*keeps on going towards left diognal using recursion.*/
+        }
+
+        else if (m[i - 1][j - 1] == "1") {
+            m[i - 1][j - 1] = " ";
+            goDown(i - 1, j - 1); /*goes down after breaking the brick m[i-1][j-1].Every brick under it is also decremented by 1.*/
+        }
+
+        else if (m[i - 1][j - 1] == "W") {
+            goRight(i - 1, j - 1); /*goes right after htting the left wall.*/
+        }
+
+        else {
+            check_Brick(i - 1, j - 1); /*any other value is analyzed in this function*/
+            goDown(i - 1, j - 1);      /*goes down after decrementing the brick m[i-1][j-1] by 1.Every brick under it is also decremented by 1.*/
+        }
+
+        new_Base(); /*new base of the matrix is created.*/
+    }
+
+    void goRight(int r, int j) /*goes right after hitting the left wall.*/
+    {
+        j = j + 1;
+
+        if (m[r][j] == " ") {
+            goRight(r, j); /*keeps on going towards right using recursion.*/
+        }
+
+        else if (m[r][j] == "1") {
+            m[r][j] = " ";
+            goDown(r, j); /*goes down after breaking the brick m[r][j].Every brick under it is also decremented by 1.*/
+        }
+
+        else if (m[r][j] == "W") {
+            ball_col = size / 2;       /*ball base is moved to centre*/
+            ball_left = ball_left - 1; /*ball count is reduced after hitting two  walls contniusly*/
+        }
+
+        else {
+            check_Brick(r, j); /*any other value is analyzed in this function*/
+            goDown(r, j);      /*goes down after decrementing the brick m[r][j] by 1.Every brick under it is also decremented by 1.*/
+        }
+    }
+
+    void goRD(int i, int j) /*goes along rght diognal.*/
+    {
+        if (m[i - 1][j + 1] == " ") {
+            goRD(i - 1, j + 1); /*keeps on going towards right diognal using recursion.*/
+        }
+
+        else if (m[i - 1][j + 1] == "1") {
+            m[i - 1][j + 1] = "  ";
+            goDown(i - 1, j + 1); /*goes down after breaking the brick m[i-1][j+1].Every brick under it is also decremented by 1.*/
+        }
+
+        else if (m[i - 1][j + 1] == "W") {
+            goLeft(i - 1, j + 1); /*goes left after htting the right wall.*/
+        }
+
+        else {
+            check_Brick(i - 1, j + 1); /*any other value is analyzed in this function*/
+            goDown(i - 1, j + 1);      /*goes down after decrementing the brick m[i-1][j+1] by 1.Every brick under it is also decremented by 1.*/
+        }
+
+        new_Base(); /*new base of the matrix is created.*/
+    }
+
+    void goLeft(int r, int j) /*goes left after hitting the wal.*/
+    {
+        j = j - 1;
+
+        if (m[r][j] == " ") {
+            goLeft(r, j); /*keeps on going towards left using recursion.*/
+        }
+
+        else if (m[r][j] == "1") {
+            m[r][j] = " ";
+            goDown(r, j); /*goes down after breaking the brick m[r][j].Every brick under it is also decremented by 1.*/
+        }
+
+        else if (m[r][j] == "W") {
+            ball_left = ball_left - 1; /*ball count is reduced after hitting two  walls contniusly*/
+            ball_col = size / 2;       /*ball base is moved to centre*/
+        }
+
+        else {
+            check_Brick(r, j); /*any other value is analyzed in this function*/
+            goDown(r, j);      /*goes down after decrementing the brick m[r][j] by 1.Every brick under it is also decremented by 1.*/
+        }
+    }
+
+    void goDown(int r, int j) {
+        r = r + 1;
+
+        if (m[r][j] == " ") {
+            goDown(r, j); /*keeps on going down using recursion.*/
+            ball_col = j; /*ball base position is changed*/
+        }
+
+        else if (m[r][j] == "1") {
+            m[r][j] = " ";
+            goDown(r, j); /*keeps on going down using recursion.*/
+            ball_col = j; /*ball base position is changed*/
+        }
+
+        else if (m[r][j] == "G") {
+            ball_left = ball_left - 1;
+            ball_col = size / 2; /*ball base position is changed to centre*/
+        }
+
+        else if (m[r][j] == "o" || m[r][j] == "_") {
+            ball_col = j; /*ball base position is changed*/
+        }
+
+        else {
+            check_Brick(r, j); /*any other value is analyzed in this function*/
+            goDown(r, j);      /*keeps on going down using recursion.*/
+            ball_col = j;      /*ball base position is changed*/
+        }
+    }
+};
+
+int main() {
+    int n, i, j;
+    char reply;
+    string brick, move, count_Ball;
+    game_Moves a;
+
+    cout << "\n*****************************************************************************************************************************************";
+    cout << "\n****                     ******    *****   *       *           ******   ******   *   *******  *    *   *******                       ****";
+    cout << "\n****                     *     *  *     *  *       *           *     *  *     *  *   *        *   *    *                             ****";
+    cout << "\n****                     *     *  *     *  *       *           *     *  *     *  *   *        *  *     *                             ****";
+    cout << "\n****                     *******  *******  *       *           *******  *******  *   *        * *      *******                       ****";
+    cout << "\n****                     *     *  *     *  *       *           *     *  * *      *   *        *  *           *                       ****";
+    cout << "\n****                     *     *  *     *  *       *           *     *  *   *    *   *        *   *          *                       ****";
+    cout << "\n****                     ******   *     *  ******  ******      ******   *     *  *   *******  *    *   *******                       ****";
+    cout << "\n*****************************************************************************************************************************************\n\n\n\n\n";
+
+    cout << "\n                                              *****GAME RULES*****\n\n\n: ";
+
+    cout << "\n**************************************************************************************************************************";
+    cout << "\n*       1)Rows and columns of square matrix should be odd and between 3 to 99.                                           *";
+    cout << "\n*       2)You cannot input values in first and last two rows and columns.                                                *";
+    cout << "\n*       3)First row and column is wall and ground while second one is left blank.                                        *";
+    cout << "\n*       4)You can enter any number between 1 to 9, which will be the bricks strength.                                    *";
+    cout << "\n*       5)There are three power bricks:                                                                                  *";
+    cout << "\n*                       DS - Breaks surrounding bricks                                                                   *";
+    cout << "\n*                       DE - Breaks all bricks in that row                                                               *";
+    cout << "\n*                        B - Extend the base to one directon each time.                                                  *";
+    cout << "\n*       6)When a ball hits the brick its strength is decremented by 1.                                                   *";
+    cout << "\n*       7)Ball travels down right after hitting a brick so every brick under it is also decremented by one strength.     *";
+    cout << "\n*       8)If any power brick is faced while traveling down then the power is activated.                                  *";
+    cout << "\n*       9)If another power brick comes with in a power brick then both power bricks are activated after the ball hits.   *";
+    cout << "\n*                       for eg: if ball hits DE and DS is present in same row it means DS is also activated.             *";
+    cout << "\n*       10)Ball travels in three directions right daigonal, left daigonal and straight.                                  *";
+    cout << "\n*               Keys are:                                                                                                *";
+    cout << "\n*                       ST/st - Straight                                                                                 *";
+    cout << "\n*                       LD/ld - Left Daigonal                                                                            *";
+    cout << "\n*                       RD/rd - Right Daigonal                                                                           *";
+    cout << "\n*       11)When ball hits a wall after moving in RD or LD then it goes in opposite direction perpendicular to the wall.  *";
+    cout << "\n*       12)If ball hits two walls continuosly then ball count is decremented .                                           *";
+    cout << "\n*       13)Ball is shot from 'o' and is placed at the centre initially.                                                  *";
+    cout << "\n*       14)'o' changes its position straight down to the brick it last hits.                                             *";
+    cout << "\n*       15)Ball count is decremented if the ball does not return to 'o'.                                                 *";
+    cout << "\n*       16)If ball falls to ground then the ball count is decremented by one.                                            *";
+    cout << "\n*       17)Inorder to win you should break all walls before your balls run out.                                          *";
+    cout << "\n**************************************************************************************************************************";
+
+    cout << "\n\n\n\n\nEnter size of the NxN matrix (only numbers between 3 and 99) : ";
+
+    mainmat:
+
+    cin >> n;
+    while (cin.fail()) {
+        cin.clear();
+        cin.ignore(INT_MAX, '\n');
+        cout << "\n\n**********************************************************";
+        cout << "\n*           MATRIX SIZE SHOULD BE A NUMBER!!!            *";
+        cout << "\n*                   TRY AGAIN !!!                        *";
+        cout << "\n**********************************************************\n";
+        cout << "\n\nEnter size of the NxN matrix (only numbers between 3 and 99) : ";
+        cin >> n;
+    }
+    if (n < 3 || n > 100) {
+        cout << "\n\n**********************************************************";
+        cout << "\n*     MATRIX SIZE SHOULD BE BETWEEN 3 AND 99 !!!         *";
+        cout << "\n*                 TRY AGAIN !!!                          *";
+        cout << "\n**********************************************************";
+        cout << "\n\n\nEnter size of the NxN matrix once again (only numbers) \n: ";
+        goto mainmat; /*code line 364*/
+    }
+
+    if (n % 2 != 0) {
+        a.main_Matrix(n);
+        a.show_Matrix();
+
+    brickentry: 
+
+        cout << "\n\nEnter the brick's position and the brick type .";
+        cout << "\nRow : ";
+        cin >> i;
+        while (cin.fail()) {
+            cin.clear();
+            cin.ignore(INT_MAX, '\n');
+            cout << "\n\n**********************************************************";
+            cout << "\n*           MATRIX ROW SHOULD BE A NUMBER!!!             *";
+            cout << "\n*                   TRY AGAIN !!!                        *";
+            cout << "\n**********************************************************\n";
+            cout << "\nRow : ";
+            cin >> i;
+        }
+        cout << "\nColumn : ";
+        cin >> j;
+        while (cin.fail()) {
+            cin.clear();
+            cin.ignore(INT_MAX, '\n');
+            cout << "\n\n**********************************************************";
+            cout << "\n*           MATRIX COLUMN SHOULD BE A NUMBER!!!          *";
+            cout << "\n*                     TRY AGAIN !!!                      *";
+            cout << "\n**********************************************************\n";
+            cout << "\nColumn : ";
+            cin >> j;
+        }
+        cout << "\nValue (Strength) : ";
+        cin >> brick;
+
+        if (i < n - 2 && j < n - 2 && i > 1 && j > 1 && (brick == "B" || brick == "DE" || brick == "DS" || brick == "b" || brick == "de" 
+            || brick == "ds" || brick == "Ds" || brick == "dS" || brick == "De" || brick == "dE" || brick == "1" || brick == "2" || brick == "3" 
+            || brick == "4" || brick == "5" || brick == "6" || brick == "7" || brick == "8" || brick == "9")) {
+            a.put_Matrix(i, j, brick);
+
+        pos1:
+
+            cout << "\n\n";
+            a.show_Matrix();
+
+            cout << "\n\n Do you want to continue(Y or N)? ";
+            cin >> reply;
+
+            if (toupper(reply) == 'Y') {
+                goto brickentry; /*code line 390*/
+            }
+
+            else if (toupper(reply) == 'N') {
+                cout << "Enter ball Count :";
+                cin >> a.ball_left;
+                while (cin.fail()) {
+                    cin.clear();
+                    cin.ignore(INT_MAX, '\n');
+                    cout << "\n\n**********************************************************";
+                    cout << "\n*          BALL COUNT SHOULD BE A NUMBER!!!              *";
+                    cout << "\n*                    TRY AGAIN !!!                       *";
+                    cout << "\n**********************************************************\n";
+                    cout << "\nBall count is : ";
+                    cin >> a.ball_left;
+                }
+            }
+
+            else {
+                cout << "\n**********************************************************";
+                cout << "\n*              INVALID RESPONSE !!!                      *";
+                cout << "\n*                 TRY AGAIN !!!                          *";
+                cout << "\n**********************************************************\n";
+                goto pos1;  /*code line 425*/
+            }
+        }
+
+        else {
+            cout << "\n**********************************************************";
+            cout << "\n*                INVALID RESPONSE !!!                    *";
+            cout << "\n**********************************************************\n";
+            goto pos1;  /*code line 425*/
+        }
+
+    pos2: 
+
+        a.show_Matrix();
+
+        cout << "\nBall count is (only numbers) " << a.ball_left << "\n";
+
+        a.ball_col = n / 2;
+
+    pos3: 
+
+        cout << "\n\nEnter the direction in which the ball need to traverse : ";
+        cin >> move;
+
+        if ((move == "ST" || move == "LD" || move == "RD" || move == "st" || move == "ld" || move == "rd" || move == "St" 
+            || move == "sT" || move == "Ld" || move == "lD" || move == "Rd" || move == "rD") && a.ball_left > 0) /*checks wether the moves are valid*/
+        {
+            if (move == "ST" || move == "st" || move == "St" || move == "sT") {
+                a.goStraight(n - 1, a.ball_col);
+
+                a.show_Matrix();
+
+                cout << "\nBall count is " << a.ball_left;
+            }
+
+            else if (move == "LD" || move == "ld" || move == "Ld" || move == "lD") {
+                a.goLD(n - 1, a.ball_col);
+
+                a.show_Matrix();
+
+                cout << "\nBall count is " << a.ball_left;
+            }
+
+            else if (move == "RD" || move == "rd" || move == "Rd" || move == "rD") {
+                a.goRD(n - 1, a.ball_col);
+
+                a.show_Matrix();
+
+                cout << "\nBall count is " << a.ball_left;
+            } else {
+                cout << "\n**********************************************************";
+                cout << "\n*                  INVALID MOVE !!!                      *";
+                cout << "\n*                   TRY AGAIN !!!                        *";
+                cout << "\n**********************************************************\n";
+                goto pos3; /*code line 476*/
+            }
+
+            a.check_Victory(); /*checks wether victory is attained*/
+
+            if (a.ball_left == 0 && a.v_flag == 1) /*checks ball count*/
+            {
+                cout << "\n**********************************************************";
+                cout << "\n*                     GAME OVER !!!                      *";
+                cout << "\n*                   RAN OUT OF BALLS! :(                 *";
+                cout << "\n**********************************************************\n";
+            }
+
+            else {
+                if (a.v_flag == 0) {
+                    cout << "\n**********************************************************";
+                    cout << "\n*                   HURRRAAAYYYY!!!                      *";
+                    cout << "\n*                     YOU WON !!!                        *";
+                    cout << "\n**********************************************************\n";
+                }
+
+                else {
+                    goto pos3; /*code line 476*/
+                }
+            }
+        }
+
+        else {
+            cout << "\n**********************************************************";
+            cout << "\n*                  INVALID MOVE !!!                      *";
+            cout << "\n*                   TRY AGAIN !!!                        *";
+            cout << "\n**********************************************************\n";
+            goto pos2; /*code line 468*/
+        }
+    } else {
+        cout << "\nPlease enter an odd integer \n";
+        cout << "\nEnter size of the NxN matrix once again : ";
+
+        goto mainmat; /*code line 364*/
+    }
+
+    return 0;
+}
